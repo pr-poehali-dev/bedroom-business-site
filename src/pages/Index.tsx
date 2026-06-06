@@ -4,7 +4,7 @@ import Icon from "@/components/ui/icon";
 const API_URL = "https://functions.poehali.dev/02d66496-bb29-413c-8862-14f62409d7c0";
 const UPLOAD_URL = "https://functions.poehali.dev/1ad2327e-fea0-4b92-93e0-edfe29b55a86";
 const HERO_IMG = "https://cdn.poehali.dev/projects/5d127310-9b90-4bb0-b2c1-bbb5ecf69bf0/files/a4c28c88-768e-4c4a-9941-33fd4229cb09.jpg";
-const OWNER_IMG = "https://cdn.poehali.dev/projects/5d127310-9b90-4bb0-b2c1-bbb5ecf69bf0/files/a522dfac-414d-4c20-843d-fde3045c6343.jpg";
+
 const WA_PHONE = "79019176030";
 const ADMIN_PASSWORD = "somnium2024";
 
@@ -330,16 +330,8 @@ export default function Index() {
       {/* ABOUT */}
       <section id="about" style={{ padding: "96px 0", background: "#fff" }}>
         <div className="max-w-6xl mx-auto px-5">
-          <div className="grid md:grid-cols-2 gap-16 items-center mb-20">
-            {/* Шамсудин */}
-            <div style={{ position: "relative" }}>
-              <img src={OWNER_IMG} alt="Шамсудин" style={{ width: "100%", maxWidth: 420, aspectRatio: "3/4", objectFit: "cover", borderRadius: 6, display: "block" }} />
-              <div style={{ position: "absolute", bottom: -18, right: -16, background: "var(--accent-warm)", color: "#fff", padding: "16px 24px", borderRadius: 2 }}>
-                <div style={{ fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", opacity: 0.8, marginBottom: 3 }}>Основатель</div>
-                <div className="font-display" style={{ fontSize: 20, fontWeight: 400 }}>Шамсудин</div>
-              </div>
-            </div>
-            <div>
+          <div className="flex justify-center mb-20">
+            <div style={{ maxWidth: 640, width: "100%" }}>
               <span className="section-label">Привет от основателя</span>
               <h2 className="font-display mb-5" style={{ fontSize: "clamp(28px, 3.5vw, 42px)", fontWeight: 400, lineHeight: 1.2 }}>
                 Привет, я — Шамсудин
