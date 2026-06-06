@@ -1,630 +1,382 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import Icon from "@/components/ui/icon";
 
-const BG_IMG = "https://cdn.poehali.dev/projects/5d127310-9b90-4bb0-b2c1-bbb5ecf69bf0/files/6a942a3a-d66e-4958-a4ab-bfca44bd6626.jpg";
+const API_URL = "https://functions.poehali.dev/02d66496-bb29-413c-8862-14f62409d7c0";
+const HERO_IMG = "https://cdn.poehali.dev/projects/5d127310-9b90-4bb0-b2c1-bbb5ecf69bf0/files/a4c28c88-768e-4c4a-9941-33fd4229cb09.jpg";
+const WA_PHONE = "79019176030";
+const ADMIN_PASSWORD = "somnium2024";
 
-const NAV_ITEMS = [
-  { label: "О нас", href: "#about" },
-  { label: "Коллекции", href: "#catalog" },
-  { label: "Преимущества", href: "#benefits" },
-  { label: "Отзывы", href: "#reviews" },
-  { label: "Контакты", href: "#contact" },
-];
-
-const COLLECTIONS = [
-  {
-    name: "Platinum Sleep",
-    desc: "Египетский хлопок 1000 нитей. Ощущение невесомости с первого прикосновения.",
-    tag: "Бестселлер",
-    price: "от 18 900 ₽",
-  },
-  {
-    name: "Noir Velvet",
-    desc: "Шёлковый сатин с матовым финишем. Коллекция для тех, кто ценит детали.",
-    tag: "Новинка",
-    price: "от 24 500 ₽",
-  },
-  {
-    name: "Cashmere Cloud",
-    desc: "Органический кашемир высшего сорта. Идеальная терморегуляция круглый год.",
-    tag: "Премиум",
-    price: "от 32 000 ₽",
-  },
-  {
-    name: "Linen Heritage",
-    desc: "Бельгийский лён ручной выделки. Становится мягче с каждой стиркой.",
-    tag: "Классика",
-    price: "от 14 200 ₽",
-  },
-];
-
-const BENEFITS = [
-  { icon: "Shield", title: "Гарантия 5 лет", desc: "На все изделия. Заменим или вернём деньги без лишних вопросов." },
-  { icon: "Truck", title: "Доставка за 48 ч", desc: "По всей России. Бесплатно при заказе от 10 000 ₽." },
-  { icon: "Star", title: "Только оригиналы", desc: "Прямые контракты с фабриками Португалии, Швейцарии и Египта." },
-  { icon: "Heart", title: "Личный стилист", desc: "Подберём комплект под интерьер. Бесплатно для каждого клиента." },
-  { icon: "Award", title: "Сертификаты OEKO-TEX", desc: "Гипоаллергенные материалы. Безопасно для детей и аллергиков." },
-  { icon: "RefreshCw", title: "Возврат 30 дней", desc: "Не понравилось — вернём полную стоимость без объяснений." },
-];
-
-const REVIEWS = [
-  {
-    name: "Ирина К.",
-    city: "Москва",
-    text: "Заказала комплект Platinum Sleep два года назад — до сих пор как новый. Качество невероятное, муж шутит, что я влюбилась в постельное бельё.",
-    stars: 5,
-  },
-  {
-    name: "Александр П.",
-    city: "Санкт-Петербург",
-    text: "Был скептиком, пока не попробовал. Разница с обычным бельём колоссальная. Беру уже третий комплект — в подарок родителям.",
-    stars: 5,
-  },
-  {
-    name: "Мария Д.",
-    city: "Екатеринбург",
-    text: "Личный стилист помог подобрать под цвет интерьера. Спальня стала выглядеть как из журнала. Сервис на высшем уровне.",
-    stars: 5,
-  },
-];
-
-const STATS = [
-  { value: "12+", label: "лет на рынке" },
-  { value: "47 000", label: "довольных клиентов" },
-  { value: "18", label: "стран поставщиков" },
-  { value: "98%", label: "рекомендуют нас" },
-];
-
-function useInView(threshold = 0.15) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [inView, setInView] = useState(false);
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) { setInView(true); observer.disconnect(); } },
-      { threshold }
-    );
-    if (ref.current) observer.observe(ref.current);
-    return () => observer.disconnect();
-  }, [threshold]);
-  return { ref, inView };
+interface Product {
+  id: number;
+  name: string;
+  description: string;
+  price: number;
+  category: string;
+  image_url: string | null;
+  in_stock: boolean;
 }
 
-function Section({ id, children, className = "" }: { id?: string; children: React.ReactNode; className?: string }) {
-  const { ref, inView } = useInView();
-  return (
-    <section id={id} ref={ref} className={`${className} ${inView ? "opacity-100" : "opacity-0"} transition-opacity duration-700`} style={{ paddingTop: 100, paddingBottom: 100 }}>
-      {children}
-    </section>
-  );
-}
-
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex items-center gap-3 mb-4">
-      <span className="gold-line" />
-      <span className="text-xs tracking-widest uppercase text-gold" style={{ letterSpacing: "0.25em" }}>{children}</span>
-    </div>
-  );
-}
+const CATEGORIES = ["Все", "Комплекты", "Подушки", "Одеяла", "Простыни", "Аксессуары"];
+const fmt = (n: number) => n.toLocaleString("ru-RU") + " ₽";
+const waLink = (product: Product) => {
+  const text = encodeURIComponent(`Здравствуйте! Хочу заказать: «${product.name}» за ${fmt(product.price)}. Расскажите подробнее.`);
+  return `https://wa.me/${WA_PHONE}?text=${text}`;
+};
 
 export default function Index() {
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [activeCategory, setActiveCategory] = useState("Все");
   const [scrolled, setScrolled] = useState(false);
-  const [formData, setFormData] = useState({ name: "", phone: "", message: "" });
-  const [sent, setSent] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [adminOpen, setAdminOpen] = useState(false);
+  const [adminAuthed, setAdminAuthed] = useState(false);
+  const [adminPwd, setAdminPwd] = useState("");
+  const [adminError, setAdminError] = useState("");
+  const [form, setForm] = useState({ name: "", description: "", price: "", category: "Комплекты", image_url: "" });
+  const [formLoading, setFormLoading] = useState(false);
+  const [formMsg, setFormMsg] = useState("");
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 60);
+    fetchProducts();
+    const onScroll = () => setScrolled(window.scrollY > 50);
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const handleNav = (href: string) => {
-    setMenuOpen(false);
-    const el = document.querySelector(href);
-    if (el) el.scrollIntoView({ behavior: "smooth" });
+  const fetchProducts = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(API_URL);
+      const raw = await res.json();
+      const data = typeof raw === "string" ? JSON.parse(raw) : raw;
+      setProducts(data.products || []);
+    } catch {
+      setProducts([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setSent(true);
+  const handleAdminLogin = () => {
+    if (adminPwd === ADMIN_PASSWORD) { setAdminAuthed(true); setAdminError(""); }
+    else setAdminError("Неверный пароль");
   };
+
+  const handleAddProduct = async () => {
+    if (!form.name || !form.price) { setFormMsg("Заполните название и цену"); return; }
+    setFormLoading(true); setFormMsg("");
+    try {
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Admin-Password": ADMIN_PASSWORD },
+        body: JSON.stringify({ ...form, price: parseInt(form.price) }),
+      });
+      if (res.ok) {
+        setFormMsg("✓ Товар добавлен!");
+        setForm({ name: "", description: "", price: "", category: "Комплекты", image_url: "" });
+        fetchProducts();
+      } else setFormMsg("Ошибка при добавлении");
+    } catch { setFormMsg("Ошибка сети"); }
+    setFormLoading(false);
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm("Удалить этот товар?")) return;
+    await fetch(`${API_URL}?id=${id}`, {
+      method: "DELETE",
+      headers: { "X-Admin-Password": ADMIN_PASSWORD },
+    });
+    fetchProducts();
+  };
+
+  const scroll = (id: string) => {
+    setMenuOpen(false);
+    document.querySelector(id)?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const closeAdmin = () => { setAdminOpen(false); setAdminAuthed(false); setAdminPwd(""); setAdminError(""); };
+  const filtered = activeCategory === "Все" ? products : products.filter(p => p.category === activeCategory);
 
   return (
-    <div style={{ background: "var(--dark-bg)", color: "var(--text-primary)", minHeight: "100vh" }}>
+    <div style={{ background: "var(--cream)", minHeight: "100vh" }}>
 
-      {/* ── NAV ── */}
-      <nav
-        className="fixed top-0 left-0 right-0 z-50 transition-all duration-500"
-        style={{
-          background: scrolled ? "rgba(14,11,8,0.96)" : "transparent",
-          borderBottom: scrolled ? "1px solid var(--gold-dim)" : "none",
-          backdropFilter: scrolled ? "blur(12px)" : "none",
-        }}
-      >
-        <div className="max-w-6xl mx-auto px-6 flex items-center justify-between" style={{ height: 72 }}>
-          <a href="#" className="font-display text-2xl tracking-wider text-gold" style={{ fontWeight: 400, letterSpacing: "0.12em" }}>
-            SOMNIUM
-          </a>
-          <ul className="hidden md:flex gap-8 list-none">
-            {NAV_ITEMS.map((item) => (
-              <li key={item.href}>
-                <button className="nav-link bg-transparent border-none p-0" onClick={() => handleNav(item.href)}>
-                  {item.label}
-                </button>
-              </li>
-            ))}
-          </ul>
-          <button
-            className="btn-gold hidden md:inline-block text-xs"
-            style={{ padding: "10px 28px" }}
-            onClick={() => handleNav("#contact")}
-          >
-            Заказать
+      {/* NAV */}
+      <header className="fixed top-0 left-0 right-0 z-50 transition-all duration-300"
+        style={{ background: scrolled ? "rgba(250,248,245,0.97)" : "transparent", borderBottom: scrolled ? "1px solid var(--sand)" : "none", backdropFilter: scrolled ? "blur(10px)" : "none" }}>
+        <div className="max-w-6xl mx-auto px-5 flex items-center justify-between" style={{ height: 68 }}>
+          <button onClick={() => scroll("#hero")} style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'Cormorant Garamond', serif", fontSize: 24, fontWeight: 500, letterSpacing: "0.06em", color: "var(--dark)" }}>
+            Somnium
           </button>
-          <button className="md:hidden text-gold bg-transparent border-none cursor-pointer" onClick={() => setMenuOpen(!menuOpen)}>
+          <nav className="hidden md:flex items-center gap-8">
+            {[["#catalog","Каталог"],["#about","О нас"],["#contact","Контакты"]].map(([id,label]) => (
+              <button key={id} className="nav-item" onClick={() => scroll(id)}>{label}</button>
+            ))}
+          </nav>
+          <div className="hidden md:flex items-center gap-4">
+            <a href="tel:+79019176030" className="nav-item flex items-center gap-2">
+              <Icon name="Phone" size={13} />+7 901 917-60-30
+            </a>
+            <button className="btn-outline" style={{ padding: "8px 18px", fontSize: 12 }} onClick={() => setAdminOpen(true)}>
+              <Icon name="Settings" size={13} />Админ
+            </button>
+          </div>
+          <button className="md:hidden" style={{ background: "none", border: "none", cursor: "pointer", color: "var(--dark)" }} onClick={() => setMenuOpen(!menuOpen)}>
             <Icon name={menuOpen ? "X" : "Menu"} size={22} />
           </button>
         </div>
-
-        {/* Mobile menu */}
         {menuOpen && (
-          <div style={{ background: "rgba(14,11,8,0.98)", borderTop: "1px solid var(--gold-dim)", padding: "20px 24px 28px" }}>
-            {NAV_ITEMS.map((item) => (
-              <button
-                key={item.href}
-                className="nav-link block bg-transparent border-none cursor-pointer mb-5 text-left"
-                onClick={() => handleNav(item.href)}
-              >
-                {item.label}
-              </button>
+          <div style={{ background: "var(--cream)", borderTop: "1px solid var(--sand)", padding: "20px 20px 24px" }}>
+            {[["#catalog","Каталог"],["#about","О нас"],["#contact","Контакты"]].map(([id,label]) => (
+              <button key={id} className="nav-item block mb-5" onClick={() => scroll(id)}>{label}</button>
             ))}
+            <button className="btn-outline w-full justify-center" onClick={() => { setMenuOpen(false); setAdminOpen(true); }}>Панель администратора</button>
           </div>
         )}
-      </nav>
+      </header>
 
-      {/* ── HERO ── */}
-      <div className="relative" style={{ height: "100vh", minHeight: 600 }}>
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage: `url(${BG_IMG})`,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-          }}
-        />
-        <div
-          className="absolute inset-0"
-          style={{
-            background: "linear-gradient(135deg, rgba(14,11,8,0.82) 0%, rgba(14,11,8,0.45) 60%, rgba(14,11,8,0.7) 100%)",
-          }}
-        />
-        <div className="relative max-w-6xl mx-auto px-6 flex flex-col justify-center h-full">
-          <div style={{ maxWidth: 620 }}>
-            <div className="animate-fade-in delay-200 flex items-center gap-3 mb-6">
-              <span className="gold-line" />
-              <span className="text-xs tracking-widest uppercase text-gold">Элитное постельное бельё</span>
-            </div>
-            <h1
-              className="font-display animate-fade-in-up delay-300"
-              style={{
-                fontSize: "clamp(42px, 7vw, 88px)",
-                lineHeight: 1.05,
-                fontWeight: 300,
-                letterSpacing: "-0.01em",
-                color: "var(--text-primary)",
-                marginBottom: 24,
-              }}
-            >
-              Сон, который<br />
-              <em style={{ fontStyle: "italic", color: "var(--gold)" }}>меняет всё</em>
+      {/* HERO */}
+      <section id="hero" className="relative" style={{ height: "100vh", minHeight: 560 }}>
+        <div className="absolute inset-0" style={{ backgroundImage: `url(${HERO_IMG})`, backgroundSize: "cover", backgroundPosition: "center" }} />
+        <div className="absolute inset-0" style={{ background: "linear-gradient(to right, rgba(250,248,245,0.93) 38%, rgba(250,248,245,0.25) 100%)" }} />
+        <div className="relative max-w-6xl mx-auto px-5 flex items-center h-full">
+          <div style={{ maxWidth: 520 }}>
+            <span className="section-label anim-up d1">Постельное бельё премиум-класса</span>
+            <h1 className="font-display anim-up d2" style={{ fontSize: "clamp(44px, 6vw, 76px)", lineHeight: 1.08, fontWeight: 400, color: "var(--dark)", marginBottom: 20 }}>
+              Просыпайтесь<br /><span style={{ color: "var(--accent-warm)" }}>счастливыми</span>
             </h1>
-            <p
-              className="animate-fade-in-up delay-500"
-              style={{ fontSize: 17, color: "var(--text-secondary)", lineHeight: 1.75, marginBottom: 44, maxWidth: 480 }}
-            >
-              Материалы из 18 стран мира. Ткани, которые прошли 23 проверки качества, прежде чем оказаться в вашей спальне.
+            <p className="anim-up d3" style={{ fontSize: 16, color: "var(--text-sub)", lineHeight: 1.8, marginBottom: 36, maxWidth: 400 }}>
+              Натуральные ткани. Честные цены. Доставка по всей России.
             </p>
-            <div className="flex flex-wrap gap-4 animate-fade-in-up delay-700">
-              <button className="btn-gold btn-gold-fill" onClick={() => handleNav("#catalog")}>
-                Смотреть коллекции
+            <div className="flex flex-wrap gap-3 anim-up d4">
+              <button className="btn-dark" onClick={() => scroll("#catalog")}>
+                <Icon name="ShoppingBag" size={15} />Смотреть каталог
               </button>
-              <button className="btn-gold" onClick={() => handleNav("#about")}>
-                О компании
-              </button>
+              <a href={`https://wa.me/${WA_PHONE}?text=${encodeURIComponent("Здравствуйте! Хочу узнать подробнее.")}`} target="_blank" rel="noopener noreferrer" className="btn-outline">
+                <Icon name="MessageCircle" size={15} />Написать в WhatsApp
+              </a>
             </div>
           </div>
         </div>
-
-        {/* Scroll hint */}
-        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 animate-fade-in delay-1100 flex flex-col items-center gap-2">
-          <span className="text-xs tracking-widest uppercase text-muted-custom">Прокрутите вниз</span>
-          <Icon name="ChevronDown" size={18} className="text-gold animate-bounce" />
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 anim-in d7">
+          <span style={{ fontSize: 11, letterSpacing: "0.15em", textTransform: "uppercase", color: "var(--text-hint)" }}>Листайте</span>
+          <Icon name="ChevronDown" size={16} style={{ color: "var(--text-hint)" }} className="animate-bounce" />
         </div>
-      </div>
+      </section>
 
-      {/* ── STATS ── */}
-      <div style={{ background: "var(--dark-card)", borderTop: "1px solid var(--gold-dim)", borderBottom: "1px solid var(--gold-dim)" }}>
-        <div className="max-w-6xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-0">
-          {STATS.map((s, i) => (
-            <div
-              key={i}
-              className="text-center"
-              style={{ padding: "40px 20px", borderRight: i < 3 ? "1px solid var(--gold-dim)" : "none", borderRightWidth: i === 1 ? "0" : undefined }}
-            >
-              <div
-                className="font-display"
-                style={{ fontSize: "clamp(28px, 4vw, 44px)", fontWeight: 300, color: "var(--gold)", letterSpacing: "-0.02em", lineHeight: 1 }}
-              >
-                {s.value}
-              </div>
-              <div className="text-xs mt-2 tracking-wider uppercase text-muted-custom">{s.label}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ── ABOUT ── */}
-      <Section id="about" className="max-w-6xl mx-auto px-6">
-        <div className="grid md:grid-cols-2 gap-16 items-center">
-          <div>
-            <SectionLabel>О компании</SectionLabel>
-            <h2 className="font-display mb-6" style={{ fontSize: "clamp(32px, 4vw, 52px)", fontWeight: 300, lineHeight: 1.15 }}>
-              Двенадцать лет<br />
-              <span style={{ color: "var(--gold)" }}>безупречного сна</span>
-            </h2>
-            <p style={{ color: "var(--text-secondary)", fontSize: 15, lineHeight: 1.85, marginBottom: 20 }}>
-              Somnium основана в 2012 году с одной целью: дать каждому человеку возможность просыпаться отдохнувшим и счастливым. Мы убеждены, что качество сна определяет качество жизни.
-            </p>
-            <p style={{ color: "var(--text-secondary)", fontSize: 15, lineHeight: 1.85, marginBottom: 36 }}>
-              Каждое изделие проходит ручной контроль качества. Мы работаем только с сертифицированными фабриками, которые разделяют наши ценности — этичное производство, экологичность и безупречное мастерство.
-            </p>
-            <button className="btn-gold" onClick={() => handleNav("#catalog")}>Смотреть коллекции</button>
-          </div>
-          <div className="relative">
-            <div
-              style={{
-                width: "100%",
-                paddingTop: "120%",
-                backgroundImage: `url(${BG_IMG})`,
-                backgroundSize: "cover",
-                backgroundPosition: "center 30%",
-                filter: "brightness(0.7) contrast(1.1)",
-              }}
-            />
-            <div
-              style={{
-                position: "absolute",
-                bottom: -20,
-                left: -20,
-                background: "var(--dark-card)",
-                border: "1px solid var(--gold-dim)",
-                padding: "24px 32px",
-              }}
-            >
-              <div className="font-display" style={{ fontSize: 36, color: "var(--gold)", fontWeight: 300 }}>★★★★★</div>
-              <div style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 4 }}>Средняя оценка 4.98 / 5</div>
-            </div>
-          </div>
-        </div>
-      </Section>
-
-      <div className="divider" />
-
-      {/* ── CATALOG ── */}
-      <Section id="catalog">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <SectionLabel>Коллекции</SectionLabel>
-            <h2 className="font-display" style={{ fontSize: "clamp(32px, 4vw, 52px)", fontWeight: 300, lineHeight: 1.15 }}>
-              Найдите свой идеальный сон
-            </h2>
-          </div>
-          <div className="grid md:grid-cols-2 gap-6">
-            {COLLECTIONS.map((col, i) => (
-              <div
-                key={i}
-                className="card-hover cursor-pointer"
-                style={{
-                  background: "var(--dark-card)",
-                  border: "1px solid var(--gold-dim)",
-                  padding: "36px 40px",
-                  position: "relative",
-                  overflow: "hidden",
-                }}
-              >
-                <div
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    height: 2,
-                    background: "linear-gradient(90deg, var(--gold-dim), var(--gold), var(--gold-dim))",
-                  }}
-                />
-                <span
-                  style={{
-                    display: "inline-block",
-                    fontSize: 10,
-                    letterSpacing: "0.2em",
-                    textTransform: "uppercase",
-                    color: "var(--gold)",
-                    border: "1px solid var(--gold-dim)",
-                    padding: "4px 12px",
-                    marginBottom: 20,
-                  }}
-                >
-                  {col.tag}
-                </span>
-                <h3 className="font-display" style={{ fontSize: 28, fontWeight: 400, marginBottom: 12, letterSpacing: "0.02em" }}>
-                  {col.name}
-                </h3>
-                <p style={{ color: "var(--text-secondary)", fontSize: 14, lineHeight: 1.8, marginBottom: 24 }}>{col.desc}</p>
-                <div className="flex items-center justify-between">
-                  <span style={{ fontSize: 20, color: "var(--gold)", fontFamily: "'Cormorant Garamond', serif", fontWeight: 400 }}>
-                    {col.price}
-                  </span>
-                  <button className="btn-gold" style={{ padding: "8px 24px", fontSize: 11 }}>
-                    Подробнее
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </Section>
-
-      <div className="divider" />
-
-      {/* ── BENEFITS ── */}
-      <Section id="benefits">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <SectionLabel>Почему выбирают нас</SectionLabel>
-            <h2 className="font-display" style={{ fontSize: "clamp(32px, 4vw, 52px)", fontWeight: 300, lineHeight: 1.15 }}>
-              Преимущества Somnium
-            </h2>
-          </div>
-          <div className="grid md:grid-cols-3 gap-6">
-            {BENEFITS.map((b, i) => (
-              <div
-                key={i}
-                className="card-hover"
-                style={{
-                  background: "var(--dark-surface)",
-                  border: "1px solid var(--border)",
-                  padding: "36px 32px",
-                  transition: "border-color 0.3s",
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.borderColor = "var(--gold-dim)")}
-                onMouseLeave={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
-              >
-                <div
-                  style={{
-                    width: 48,
-                    height: 48,
-                    border: "1px solid var(--gold-dim)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    marginBottom: 20,
-                    color: "var(--gold)",
-                  }}
-                >
-                  <Icon name={b.icon} size={20} />
-                </div>
-                <h4 className="font-display" style={{ fontSize: 20, fontWeight: 400, marginBottom: 10 }}>{b.title}</h4>
-                <p style={{ color: "var(--text-secondary)", fontSize: 14, lineHeight: 1.8 }}>{b.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </Section>
-
-      <div className="divider" />
-
-      {/* ── REVIEWS ── */}
-      <Section id="reviews">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <SectionLabel>Отзывы</SectionLabel>
-            <h2 className="font-display" style={{ fontSize: "clamp(32px, 4vw, 52px)", fontWeight: 300, lineHeight: 1.15 }}>
-              Что говорят клиенты
-            </h2>
-          </div>
-          <div className="grid md:grid-cols-3 gap-6">
-            {REVIEWS.map((r, i) => (
-              <div
-                key={i}
-                className="card-hover"
-                style={{
-                  background: "var(--dark-card)",
-                  border: "1px solid var(--gold-dim)",
-                  padding: "36px 32px",
-                  position: "relative",
-                }}
-              >
-                <div
-                  className="font-display"
-                  style={{
-                    fontSize: 64,
-                    color: "var(--gold-dim)",
-                    lineHeight: 0.8,
-                    marginBottom: 20,
-                    opacity: 0.4,
-                  }}
-                >
-                  "
-                </div>
-                <p style={{ color: "var(--text-secondary)", fontSize: 14, lineHeight: 1.85, marginBottom: 24, fontStyle: "italic" }}>
-                  {r.text}
-                </p>
-                <div style={{ borderTop: "1px solid var(--border)", paddingTop: 18 }}>
-                  <div style={{ color: "var(--gold)", fontSize: 13, letterSpacing: "0.08em", marginBottom: 2 }}>{"★".repeat(r.stars)}</div>
-                  <div style={{ fontWeight: 500, fontSize: 14 }}>{r.name}</div>
-                  <div style={{ color: "var(--text-muted)", fontSize: 12 }}>{r.city}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </Section>
-
-      <div className="divider" />
-
-      {/* ── CONTACT ── */}
-      <Section id="contact">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="grid md:grid-cols-2 gap-16 items-start">
+      {/* CATALOG */}
+      <section id="catalog" style={{ padding: "96px 0 80px" }}>
+        <div className="max-w-6xl mx-auto px-5">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-10">
             <div>
-              <SectionLabel>Свяжитесь с нами</SectionLabel>
-              <h2 className="font-display mb-6" style={{ fontSize: "clamp(32px, 4vw, 52px)", fontWeight: 300, lineHeight: 1.15 }}>
-                Мы готовы<br />
-                <span style={{ color: "var(--gold)" }}>ответить на всё</span>
-              </h2>
-              <p style={{ color: "var(--text-secondary)", fontSize: 15, lineHeight: 1.85, marginBottom: 40 }}>
-                Подберём коллекцию под ваш интерьер, рассчитаем стоимость под нестандартные размеры и организуем доставку в любую точку России.
-              </p>
-              <div className="flex flex-col gap-5">
-                {[
-                  { icon: "Phone", label: "+7 (800) 555-35-35" },
-                  { icon: "Mail", label: "hello@somnium.ru" },
-                  { icon: "MapPin", label: "Москва, Кутузовский пр-т, 32" },
-                ].map((item) => (
-                  <div key={item.label} className="flex items-center gap-4">
-                    <div
-                      style={{
-                        width: 40,
-                        height: 40,
-                        border: "1px solid var(--gold-dim)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        color: "var(--gold)",
-                        flexShrink: 0,
-                      }}
-                    >
-                      <Icon name={item.icon} size={16} />
-                    </div>
-                    <span style={{ color: "var(--text-secondary)", fontSize: 15 }}>{item.label}</span>
-                  </div>
-                ))}
-              </div>
+              <span className="section-label">Наш ассортимент</span>
+              <h2 className="font-display" style={{ fontSize: "clamp(28px, 4vw, 44px)", fontWeight: 400, lineHeight: 1.15, color: "var(--dark)" }}>Каталог товаров</h2>
             </div>
-
-            {/* Form */}
-            <div
-              style={{
-                background: "var(--dark-card)",
-                border: "1px solid var(--gold-dim)",
-                padding: "48px 40px",
-              }}
-            >
-              {sent ? (
-                <div className="text-center py-8">
-                  <div style={{ fontSize: 48, color: "var(--gold)", marginBottom: 16 }}>✓</div>
-                  <h3 className="font-display" style={{ fontSize: 28, fontWeight: 400, marginBottom: 12 }}>Заявка отправлена</h3>
-                  <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>Мы свяжемся с вами в течение 2 часов.</p>
-                </div>
-              ) : (
-                <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-                  <h3 className="font-display" style={{ fontSize: 26, fontWeight: 400, marginBottom: 8 }}>Оставить заявку</h3>
-                  {[
-                    { key: "name", placeholder: "Ваше имя", type: "text" },
-                    { key: "phone", placeholder: "Телефон", type: "tel" },
-                  ].map((f) => (
-                    <input
-                      key={f.key}
-                      type={f.type}
-                      placeholder={f.placeholder}
-                      value={formData[f.key as keyof typeof formData]}
-                      onChange={(e) => setFormData({ ...formData, [f.key]: e.target.value })}
-                      style={{
-                        background: "transparent",
-                        border: "1px solid var(--gold-dim)",
-                        color: "var(--text-primary)",
-                        padding: "14px 18px",
-                        fontSize: 14,
-                        outline: "none",
-                        fontFamily: "'Golos Text', sans-serif",
-                        transition: "border-color 0.3s",
-                      }}
-                      onFocus={(e) => (e.target.style.borderColor = "var(--gold)")}
-                      onBlur={(e) => (e.target.style.borderColor = "var(--gold-dim)")}
-                    />
-                  ))}
-                  <textarea
-                    placeholder="Сообщение (необязательно)"
-                    rows={4}
-                    value={formData.message}
-                    onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                    style={{
-                      background: "transparent",
-                      border: "1px solid var(--gold-dim)",
-                      color: "var(--text-primary)",
-                      padding: "14px 18px",
-                      fontSize: 14,
-                      outline: "none",
-                      resize: "none",
-                      fontFamily: "'Golos Text', sans-serif",
-                      transition: "border-color 0.3s",
-                    }}
-                    onFocus={(e) => (e.target.style.borderColor = "var(--gold)")}
-                    onBlur={(e) => (e.target.style.borderColor = "var(--gold-dim)")}
-                  />
-                  <button type="submit" className="btn-gold btn-gold-fill" style={{ marginTop: 8 }}>
-                    Отправить заявку
-                  </button>
-                  <p style={{ color: "var(--text-muted)", fontSize: 11, textAlign: "center", letterSpacing: "0.05em" }}>
-                    Нажимая кнопку, вы соглашаетесь с политикой конфиденциальности
-                  </p>
-                </form>
-              )}
-            </div>
-          </div>
-        </div>
-      </Section>
-
-      {/* ── FOOTER ── */}
-      <footer style={{ background: "var(--dark-card)", borderTop: "1px solid var(--gold-dim)", padding: "48px 0 32px" }}>
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 mb-10">
-            <div>
-              <div className="font-display text-2xl text-gold mb-2" style={{ letterSpacing: "0.12em", fontWeight: 400 }}>
-                SOMNIUM
-              </div>
-              <div style={{ color: "var(--text-muted)", fontSize: 12, letterSpacing: "0.08em" }}>
-                Элитное постельное бельё с 2012 года
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-8">
-              {NAV_ITEMS.map((item) => (
-                <button
-                  key={item.href}
-                  className="nav-link bg-transparent border-none cursor-pointer"
-                  onClick={() => handleNav(item.href)}
-                >
-                  {item.label}
+            <div className="flex flex-wrap gap-2">
+              {CATEGORIES.map(cat => (
+                <button key={cat} onClick={() => setActiveCategory(cat)}
+                  style={{ padding: "7px 16px", fontSize: 12, fontWeight: 500, borderRadius: 2, border: "1.5px solid", cursor: "pointer", transition: "all 0.2s",
+                    borderColor: activeCategory === cat ? "var(--dark)" : "var(--sand)",
+                    background: activeCategory === cat ? "var(--dark)" : "transparent",
+                    color: activeCategory === cat ? "#fff" : "var(--text-sub)" }}>
+                  {cat}
                 </button>
               ))}
             </div>
           </div>
-          <div className="divider mb-8" />
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <p style={{ color: "var(--text-muted)", fontSize: 12 }}>
-              © 2024 Somnium. Все права защищены.
+
+          {loading ? (
+            <div className="text-center py-20" style={{ color: "var(--text-hint)" }}>
+              <Icon name="Loader" size={28} className="animate-spin mx-auto mb-3" />
+              <p>Загружаем товары…</p>
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="text-center py-20">
+              <Icon name="Package" size={44} className="mx-auto mb-4" style={{ color: "var(--taupe)", opacity: 0.4 }} />
+              <p style={{ fontSize: 16, color: "var(--text-sub)" }}>Товаров пока нет в этой категории</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {filtered.map(product => (
+                <div key={product.id} className="product-card">
+                  <div style={{ height: 220, background: "var(--sand)", position: "relative", overflow: "hidden" }}>
+                    {product.image_url
+                      ? <img src={product.image_url} alt={product.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <Icon name="Bed" size={48} style={{ color: "var(--taupe)", opacity: 0.45 }} />
+                        </div>
+                    }
+                    {product.category && <span className="badge badge-sand" style={{ position: "absolute", top: 12, left: 12 }}>{product.category}</span>}
+                  </div>
+                  <div style={{ padding: "20px 22px 22px" }}>
+                    <h3 style={{ fontSize: 17, fontWeight: 600, color: "var(--dark)", marginBottom: 8, lineHeight: 1.3 }}>{product.name}</h3>
+                    {product.description && (
+                      <p style={{ fontSize: 13, color: "var(--text-sub)", lineHeight: 1.7, marginBottom: 16,
+                        display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" as const, overflow: "hidden" }}>
+                        {product.description}
+                      </p>
+                    )}
+                    <div className="flex items-center justify-between gap-3 flex-wrap">
+                      <span className="font-display" style={{ fontSize: 22, fontWeight: 500, color: "var(--dark)" }}>{fmt(product.price)}</span>
+                      <a href={waLink(product)} target="_blank" rel="noopener noreferrer" className="btn-warm" style={{ padding: "9px 20px", fontSize: 12 }}>
+                        <Icon name="MessageCircle" size={14} />Заказать
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      <div className="hr" />
+
+      {/* ABOUT */}
+      <section id="about" style={{ padding: "96px 0", background: "#fff" }}>
+        <div className="max-w-6xl mx-auto px-5 grid md:grid-cols-2 gap-16 items-center">
+          <div>
+            <span className="section-label">О компании</span>
+            <h2 className="font-display mb-5" style={{ fontSize: "clamp(28px, 4vw, 44px)", fontWeight: 400, lineHeight: 1.15 }}>
+              Качество, которое<br />чувствуется руками
+            </h2>
+            <p style={{ fontSize: 15, color: "var(--text-sub)", lineHeight: 1.85, marginBottom: 14 }}>
+              Мы подбираем только натуральные ткани: египетский хлопок, бельгийский лён, шёлк и кашемир. Каждый комплект проходит проверку перед отправкой.
             </p>
-            <div className="flex gap-6">
-              {["Политика конфиденциальности", "Оферта", "Доставка"].map((l) => (
-                <a key={l} href="#" style={{ color: "var(--text-muted)", fontSize: 11, letterSpacing: "0.06em", textDecoration: "none" }}>
-                  {l}
-                </a>
+            <p style={{ fontSize: 15, color: "var(--text-sub)", lineHeight: 1.85, marginBottom: 36 }}>
+              Работаем напрямую с производителями — цены честные, качество неизменно высокое.
+            </p>
+            <div className="grid grid-cols-2 gap-6">
+              {[["500+","довольных клиентов"],["100%","натуральные ткани"],["48 ч","доставка по России"],["30 дней","гарантия возврата"]].map(([val,label]) => (
+                <div key={label}>
+                  <div className="font-display" style={{ fontSize: 34, fontWeight: 400, color: "var(--accent-warm)", lineHeight: 1 }}>{val}</div>
+                  <div style={{ fontSize: 13, color: "var(--text-sub)", marginTop: 4 }}>{label}</div>
+                </div>
               ))}
             </div>
           </div>
+          <div style={{ position: "relative" }}>
+            <img src={HERO_IMG} alt="Интерьер спальни" style={{ width: "100%", aspectRatio: "4/5", objectFit: "cover", borderRadius: 4 }} />
+            <div style={{ position: "absolute", bottom: -20, right: -16, background: "var(--dark)", color: "#fff", padding: "18px 26px", borderRadius: 2 }}>
+              <div style={{ fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", opacity: 0.55, marginBottom: 4 }}>Только натуральное</div>
+              <div className="font-display" style={{ fontSize: 20, fontWeight: 400 }}>100% Eco</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div className="hr" />
+
+      {/* CONTACT */}
+      <section id="contact" style={{ padding: "96px 0" }}>
+        <div className="max-w-6xl mx-auto px-5">
+          <div className="text-center mb-14">
+            <span className="section-label">Связь с нами</span>
+            <h2 className="font-display" style={{ fontSize: "clamp(28px, 4vw, 44px)", fontWeight: 400 }}>Готовы помочь с выбором</h2>
+          </div>
+          <div className="grid md:grid-cols-3 gap-5">
+            {[
+              { icon: "Phone", title: "Телефон", val: "+7 901 917-60-30", link: "tel:+79019176030" },
+              { icon: "MessageCircle", title: "WhatsApp", val: "Написать сейчас", link: `https://wa.me/${WA_PHONE}` },
+              { icon: "Mail", title: "Email", val: "dzamolovhorun@gmail.com", link: "mailto:dzamolovhorun@gmail.com" },
+            ].map(c => (
+              <a key={c.title} href={c.link} target={c.link.startsWith("http") ? "_blank" : undefined} rel="noopener noreferrer"
+                style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center",
+                  background: "#fff", border: "1px solid var(--sand)", borderRadius: 4, padding: "40px 24px",
+                  textDecoration: "none", transition: "box-shadow 0.25s, transform 0.25s" }}
+                onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.boxShadow = "0 8px 32px rgba(26,22,20,0.08)"; el.style.transform = "translateY(-3px)"; }}
+                onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.boxShadow = "none"; el.style.transform = "none"; }}
+              >
+                <div style={{ width: 52, height: 52, borderRadius: "50%", background: "var(--sand)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16, color: "var(--accent-warm)" }}>
+                  <Icon name={c.icon} size={22} />
+                </div>
+                <div style={{ fontSize: 11, letterSpacing: "0.15em", textTransform: "uppercase", color: "var(--text-hint)", marginBottom: 6 }}>{c.title}</div>
+                <div style={{ fontSize: 15, fontWeight: 600, color: "var(--dark)" }}>{c.val}</div>
+              </a>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FOOTER */}
+      <footer style={{ background: "var(--dark)", color: "#fff", padding: "40px 0 28px" }}>
+        <div className="max-w-6xl mx-auto px-5 flex flex-col md:flex-row justify-between items-center gap-6">
+          <div>
+            <div className="font-display text-2xl mb-1" style={{ fontWeight: 400, letterSpacing: "0.06em" }}>Somnium</div>
+            <div style={{ fontSize: 12, opacity: 0.4 }}>Постельное бельё премиум-класса</div>
+          </div>
+          <div className="flex flex-wrap gap-6 justify-center">
+            {[["#catalog","Каталог"],["#about","О нас"],["#contact","Контакты"]].map(([id,label]) => (
+              <button key={id} onClick={() => scroll(id)} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.45)", fontSize: 13, cursor: "pointer", letterSpacing: "0.06em", transition: "color 0.2s" }}
+                onMouseEnter={e => (e.currentTarget.style.color = "#fff")}
+                onMouseLeave={e => (e.currentTarget.style.color = "rgba(255,255,255,0.45)")}>{label}</button>
+            ))}
+          </div>
+          <div style={{ fontSize: 12, opacity: 0.3 }}>© 2024 Somnium</div>
         </div>
       </footer>
+
+      {/* ADMIN MODAL */}
+      {adminOpen && (
+        <div className="modal-bg" onClick={e => { if (e.target === e.currentTarget) closeAdmin(); }}>
+          <div className="modal-box">
+            {!adminAuthed ? (
+              <>
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="font-display" style={{ fontSize: 26, fontWeight: 400 }}>Вход в панель</h3>
+                  <button onClick={closeAdmin} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-hint)" }}><Icon name="X" size={20} /></button>
+                </div>
+                <div className="flex flex-col gap-4">
+                  <input type="password" className="field" placeholder="Пароль администратора" value={adminPwd}
+                    onChange={e => setAdminPwd(e.target.value)} onKeyDown={e => e.key === "Enter" && handleAdminLogin()} autoFocus />
+                  {adminError && <p style={{ color: "#e03c3c", fontSize: 13 }}>{adminError}</p>}
+                  <button className="btn-dark justify-center w-full" onClick={handleAdminLogin}>Войти</button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="font-display" style={{ fontSize: 24, fontWeight: 400 }}>Управление товарами</h3>
+                  <button onClick={closeAdmin} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-hint)" }}><Icon name="X" size={20} /></button>
+                </div>
+                <div style={{ background: "var(--cream)", borderRadius: 4, padding: "20px", marginBottom: 24 }}>
+                  <p className="section-label" style={{ marginBottom: 14 }}>Добавить товар</p>
+                  <div className="flex flex-col gap-3">
+                    <input className="field" placeholder="Название *" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
+                    <textarea className="field" placeholder="Описание" rows={2} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} style={{ resize: "none" }} />
+                    <div className="grid grid-cols-2 gap-3">
+                      <input className="field" type="number" placeholder="Цена ₽ *" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} />
+                      <select className="field" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>
+                        {CATEGORIES.filter(c => c !== "Все").map(c => <option key={c}>{c}</option>)}
+                      </select>
+                    </div>
+                    <input className="field" placeholder="Ссылка на фото (необязательно)" value={form.image_url} onChange={e => setForm({ ...form, image_url: e.target.value })} />
+                    {formMsg && <p style={{ fontSize: 13, color: formMsg.startsWith("✓") ? "#2d8c3e" : "#e03c3c" }}>{formMsg}</p>}
+                    <button className="btn-dark justify-center" onClick={handleAddProduct} disabled={formLoading}>
+                      {formLoading ? <><Icon name="Loader" size={14} className="animate-spin" />Добавляю…</> : <><Icon name="Plus" size={14} />Добавить товар</>}
+                    </button>
+                  </div>
+                </div>
+                <p className="section-label">Список товаров ({products.length})</p>
+                <div className="flex flex-col gap-2" style={{ maxHeight: 260, overflowY: "auto" }}>
+                  {products.length === 0 && <p style={{ color: "var(--text-hint)", fontSize: 13 }}>Нет товаров</p>}
+                  {products.map(p => (
+                    <div key={p.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "10px 12px", background: "#fff", borderRadius: 2, border: "1px solid var(--sand)" }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 600, fontSize: 13, color: "var(--dark)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.name}</div>
+                        <div style={{ fontSize: 12, color: "var(--text-hint)" }}>{fmt(p.price)} · {p.category || "—"}</div>
+                      </div>
+                      <button onClick={() => handleDelete(p.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "#e03c3c", padding: 4, flexShrink: 0 }}>
+                        <Icon name="Trash2" size={15} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
